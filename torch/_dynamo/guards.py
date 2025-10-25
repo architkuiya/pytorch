@@ -2010,6 +2010,9 @@ class GuardBuilder(GuardBuilderBase):
         )
 
     def ID_MATCH(self, guard: Guard, recompile_hint: Optional[str] = None) -> None:
+        val = self.get(guard.name)
+        if inspect.isclass(val):
+            raise AssertionError(f"{guard.name} is a class, use CLASS_MATCH guard")
         return self.id_match_unchecked(guard, recompile_hint)
 
     def id_match_unchecked(
@@ -2284,6 +2287,15 @@ class GuardBuilder(GuardBuilderBase):
         """things like torch.add and user defined functions"""
         # don't support this in serialization because it uses unsupported ID_MATCH
         return self.ID_MATCH(guard)
+
+    def CLASS_MATCH(self, guard: Guard) -> None:
+        """Equals ID_MATCH on classes - better readability than directly calling ID_MATCH"""
+        val = self.get(guard.name)
+        if not inspect.isclass(val):
+            raise AssertionError(
+                f"{guard.name} is not a class, but CLASS_MATCH is used"
+            )
+        self.ID_MATCH(guard)
 
     def CLOSURE_MATCH(self, guard: Guard) -> None:
         """matches a closure by __code__ id."""
@@ -3684,6 +3696,7 @@ class CheckFunctionManager:
         "NN_MODULE",
         "ID_MATCH",
         "FUNCTION_MATCH",
+        "CLASS_MATCH",
         "CLOSURE_MATCH",
         "WEAKREF_ALIVE",
     )
